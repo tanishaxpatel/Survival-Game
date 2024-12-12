@@ -1,10 +1,16 @@
 import { useState, useCallback, useEffect } from "react";
 import { GAME_CONFIG } from "../constants/gameConfig";
+import { useGame } from "../context/GameContext";
 
-export const useEnemySystem = (playerPosition, canvasSize, setPlayerHealth) => {
-  const [enemies, setEnemies] = useState([]);
-  const [isMoving, setIsMoving] = useState(true);
-
+export const useEnemySystem = (
+  playerPosition,
+  canvasSize
+  // setPlayerHealth,
+  // playerHealth
+) => {
+  // const [enemies, setEnemies] = useState([]);
+  // const [isMoving, setIsMoving] = useState(true);
+  const { setEnemies, enemies, playerHealth, setPlayerHealth } = useGame();
   const spawnEnemy = useCallback((count) => {
     const newEnemies = Array.from({ length: count }, () => ({
       id: Math.random(),
@@ -32,44 +38,40 @@ export const useEnemySystem = (playerPosition, canvasSize, setPlayerHealth) => {
         const dy = playerPosition.y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (
-          distance <= ATTACK_RANGE &&
-          currentTime - enemy.lastAttackTime >= ATTACK_COOLDOWN
-        ) {
-          setPlayerHealth((prev) => Math.max(0, prev - ATTACK_DAMAGE));
-          // return enemy;
-          // return {
-          //   ...enemy,
-          //   lastAttackTime: currentTime, // Update last attack time
-          // };
-        }
-
         if (distance > MIN_DISTANCE) {
           const moveX = (dx / distance) * ENEMY_SPEED;
           const moveY = (dy / distance) * ENEMY_SPEED;
 
-          setIsMoving(true);
+          // setIsMoving(true);
           return {
             ...enemy,
             x: enemy.x + moveX,
             y: enemy.y + moveY,
+            // lastAttackTime: currentTime,
           };
         } else {
-          setIsMoving(false);
+          // setIsMoving(false);
+          if (currentTime - enemy.lastAttackTime >= ATTACK_COOLDOWN) {
+            setPlayerHealth((prev) => Math.max(0, prev - ATTACK_DAMAGE));
+            return {
+              ...enemy,
+              lastAttackTime: currentTime,
+            };
+          }
         }
 
         return enemy;
       })
     );
-  }, [playerPosition, setPlayerHealth]);
+  }, [playerPosition, setPlayerHealth, playerHealth]);
 
   // Handle movement interval internally
   useEffect(() => {
-    if (enemies.length === 0 || !isMoving) return;
+    if (enemies.length === 0 || playerHealth <= 0) return;
 
     const interval = setInterval(moveEnemies, 16);
     return () => clearInterval(interval);
-  }, [moveEnemies, enemies.length, isMoving]);
+  }, [moveEnemies, enemies.length]);
 
-  return { enemies, spawnEnemy }; // No need to expose moveEnemies anymore
+  return { spawnEnemy }; // No need to expose moveEnemies anymore
 };

@@ -26,7 +26,7 @@ const App = () => {
 
   useEffect(() => {
     const spawnEnemies = () => {
-      const numberOfEnemies = 5; // Adjust as needed
+      const numberOfEnemies = 10; // Adjust as needed
       const newEnemies = [];
 
       for (let i = 0; i < numberOfEnemies; i++) {
@@ -53,7 +53,6 @@ const App = () => {
           });
         }
       }
-      console.log(screenBounds);
 
       setEnemies(newEnemies);
     };
@@ -99,14 +98,14 @@ const App = () => {
         setPosition={setPlayerPosition}
         screenBounds={screenBounds}
       />
-      {/* {enemies.map((enemy) => (
+      {enemies.map((enemy) => (
         <Enemy
           key={enemy.id}
           position={enemy.position}
           playerPosition={playerPosition}
           screenBounds={screenBounds}
         />
-      ))} */}
+      ))}
     </Canvas>
   );
 };

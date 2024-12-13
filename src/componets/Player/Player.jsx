@@ -3,7 +3,6 @@ import { useFrame } from "@react-three/fiber";
 import { useLoader } from "@react-three/fiber";
 import { TextureLoader } from "three";
 import * as THREE from "three";
-import playerSpriteSheet from "../../assets/Soldier-Attack01.png";
 import PlayerMove from "../../assets/player_movement.png";
 import PlayerAttack from "../../assets/player-attack.png";
 import PlayerDeath from "../../assets/player-death.png";

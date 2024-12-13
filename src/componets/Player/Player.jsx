@@ -6,12 +6,13 @@ import * as THREE from "three";
 import playerSpriteSheet from "../../assets/Soldier-Attack01.png";
 import PlayerMove from "../../assets/player_movement.png";
 import PlayerAttack from "../../assets/player-attack.png";
+import PlayerDeath from "../../assets/player-death.png";
 
 const Player = ({ position, setPosition, screenBounds }) => {
   const spriteRef = useRef();
   const keys = useRef({});
   const speed = 0.1;
-  const spriteScale = [3, 3, 3];
+
   // Animation settings
   const [currentFrame, setCurrentFrame] = useState(0);
   const [currentRow, setCurrentRow] = useState(0);
@@ -25,27 +26,32 @@ const Player = ({ position, setPosition, screenBounds }) => {
   const [attackFrame, setAttackFrame] = useState(0);
   const attackFrameCount = 4; // Your attack animation has 4 frames
   const attackRowCount = 3;
-  const attackSpeed = 0.08; // Adjust this value to control attack animation speed
+  const attackSpeed = 0.09; // Adjust this value to control attack animation speed
   const attackTimer = useRef(0);
 
+  const deathFrameCount = 3;
+  const deathTimer = useRef(0);
+  const [isDead, setIsDead] = useState(false);
+  const deathSpeed = 0.09;
+  const [health, setHealth] = useState(100);
   const [currentTexture, setCurrentTexture] = useState(null);
 
   // Load the sprite sheet
   const texture = useLoader(TextureLoader, PlayerMove);
   const attackTexture = useLoader(TextureLoader, PlayerAttack);
+  const deathTexture = useLoader(TextureLoader, PlayerDeath);
   useEffect(() => {
     if (texture) {
-      // Fix pixelation
+      //move
       texture.magFilter = THREE.NearestFilter;
       texture.minFilter = THREE.NearestFilter;
       texture.generateMipmaps = false;
-
-      // Important: Clone the texture for each frame to prevent stretching
-      // texture.repeat.set(1 / frameCount, 1);
       texture.repeat.set(1 / frameCount, 1 / rowCount);
       texture.offset.x = 0;
       texture.offset.y = 0;
       texture.needsUpdate = true;
+
+      //attack
 
       attackTexture.magFilter = THREE.NearestFilter;
       attackTexture.minFilter = THREE.NearestFilter;
@@ -54,13 +60,24 @@ const Player = ({ position, setPosition, screenBounds }) => {
       attackTexture.offset.x = 0;
       attackTexture.offset.y = 0;
       attackTexture.needsUpdate = true;
+
+      //death
+
+      deathTexture.magFilter = THREE.NearestFilter;
+      deathTexture.minFilter = THREE.NearestFilter;
+      deathTexture.generateMipmaps = false;
+      deathTexture.repeat.set(1 / deathFrameCount, 1);
+      deathTexture.offset.x = 0;
+      deathTexture.offset.y = 0;
+      deathTexture.needsUpdate = true;
+
       setCurrentTexture(texture);
     }
-  }, [texture, attackTexture]);
+  }, [texture, attackTexture, deathTexture]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "1" && !isAttacking) {
+      if (e.key === "1" && !isAttacking && !isDead) {
         setIsAttacking(true);
         setAttackFrame(0);
         setCurrentTexture(attackTexture);
@@ -76,6 +93,7 @@ const Player = ({ position, setPosition, screenBounds }) => {
       keys.current[e.key.toLowerCase()] = false;
 
       if (
+        !isDead &&
         ![
           "w",
           "a",
@@ -101,9 +119,50 @@ const Player = ({ position, setPosition, screenBounds }) => {
     };
   }, [isAttacking]);
 
+  // useEffect(() => {
+  //   let intervalId; // We'll store the interval ID here
+
+  //   const handleDeath = () => {
+  //     if (health > 0) {
+  //       intervalId = setInterval(() => {
+  //         setHealth((prevHealth) => {
+  //           if (prevHealth <= 10) {
+  //             clearInterval(intervalId); // Stop interval when health <= 0
+  //             setIsDead(true);
+  //             return 0; // Make sure health doesn't go below 0
+  //           }
+  //           return prevHealth - 10;
+  //         });
+  //       }, 1000);
+  //     }
+  //   };
+
+  //   handleDeath();
+
+  //   return () => {
+  //     clearInterval(intervalId); // Cleanup interval on component unmount
+  //   };
+  // }, [health]);
+
   useFrame((state, delta) => {
     if (!spriteRef.current || !texture) return;
 
+    if (isDead) {
+      deathTimer.current += delta;
+      if (deathTimer.current >= deathSpeed) {
+        deathTimer.current = 0;
+        setCurrentFrame((prev) => {
+          if (prev < deathFrameCount - 1) {
+            setCurrentTexture(deathTexture);
+            return prev + 1;
+          }
+          return prev; // Stay on last frame
+        });
+        deathTexture.offset.x = currentFrame / deathFrameCount;
+      }
+
+      return; // Skip all other animations if dead
+    }
     if (isAttacking) {
       // Handle attack animation
       attackTimer.current += delta;
@@ -184,16 +243,30 @@ const Player = ({ position, setPosition, screenBounds }) => {
   });
 
   return (
-    <mesh ref={spriteRef} position={[position.x, position.y, 1]}>
-      <planeGeometry args={[3, 3]} />{" "}
-      {/* Use plane geometry for better texture mapping */}
-      <meshBasicMaterial
-        attach="material"
-        map={currentTexture}
-        transparent={true}
-        opacity={1}
-      />
-    </mesh>
+    <>
+      <mesh ref={spriteRef} position={[position.x, position.y, 1]}>
+        <planeGeometry args={[3, 3]} />{" "}
+        {/* Use plane geometry for better texture mapping */}
+        <meshBasicMaterial
+          attach="material"
+          map={currentTexture}
+          transparent={true}
+          opacity={1}
+        />
+      </mesh>
+      {/* Grey background bar (empty health) */}
+      <mesh position={[position.x, position.y + 1, 1]}>
+        <planeGeometry args={[2, 0.2]} />
+        <meshBasicMaterial color="grey" />
+      </mesh>
+      {/* Colored health bar */}
+      <mesh position={[position.x - (1 - health / 100), position.y + 1, 1]}>
+        <planeGeometry args={[2 * (health / 100), 0.2]} />
+        <meshBasicMaterial
+          color={health > 70 ? "green" : health > 40 ? "orange" : "red"}
+        />
+      </mesh>
+    </>
   );
 };
 
